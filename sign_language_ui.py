@@ -53,9 +53,12 @@ text_label.pack(pady=20, fill="both")
 video_frame = Label(root, bg="#2E2E2E")
 video_frame.pack(pady=10)
 
+# List to store hand positions for movement tracking
+hand_positions = []
+
 # Function to update video feed and perform detection
 def update_frame():
-    global last_pred, last_time, current_word
+    global last_pred, last_time, current_word, hand_positions
 
     success, img = cap.read()
     if success:
@@ -67,6 +70,24 @@ def update_frame():
             hand = hands[0]
             x, y, w, h = hand['bbox']
 
+            # Track hand's center position
+            center_x = x + w // 2
+            center_y = y + h // 2
+
+            # Store the position of the hand's center
+            hand_positions.append((center_x, center_y))
+
+            # Keep the list size small to only track the last few frames
+            if len(hand_positions) > 20:  # Store the last 20 frames
+                hand_positions.pop(0)
+
+            # Draw the trajectory of the hand
+            for i in range(1, len(hand_positions)):
+                # Line thickness depends on speed of movement (difference between points)
+                thickness = int(math.sqrt(i) * 2)
+                cv2.line(imgOutput, hand_positions[i - 1], hand_positions[i], (0, 255, 0), thickness)
+
+            # Your existing logic for hand detection and prediction
             imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
             imgCrop = img[y - offset:y + h + offset, x - offset:x + w + offset]
             aspectRatio = h / w
@@ -86,7 +107,7 @@ def update_frame():
                 imgWhite[hGap:hCal + hGap, :] = imgResize
                 prediction, index = classifier.getPrediction(imgWhite, draw=False)
 
-            # Check if the prediction has been consistent for the delay period
+            # Your existing logic for word detection
             if last_pred == labels[index]:
                 if time.time() - last_time > delay_between_letters:
                     current_word += labels[index]
@@ -103,7 +124,7 @@ def update_frame():
                           (x + w + offset, y + h + offset), (255, 0, 255), 4)
 
         else:
-            # If no hands are detected, consider it as a space after the delay
+            # If no hands are detected, add a space after the delay
             if time.time() - last_time > delay_for_space:
                 current_word += " "
                 last_pred = None
