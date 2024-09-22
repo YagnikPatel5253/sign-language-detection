@@ -7,7 +7,7 @@ cap = cv2.VideoCapture(0)
 detector = HandDetector(maxHands=1)
 offset = 20
 imgSize = 300
-folder = "Data/S"
+folder = "Data/Z"
 counter = 0
 while True:
     success, img = cap.read()
